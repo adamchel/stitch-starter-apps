@@ -23,6 +23,7 @@ import com.mongodb.stitch.starter_app.model.objects.Friend;
 
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecProvider;
+import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
 
@@ -93,7 +94,8 @@ public class FriendList {
             _mobileClient = _stitchClient.getServiceClient(LocalMongoDbService.clientFactory);
             _localFriendCollection = _mobileClient
                     .getDatabase(FRIEND_LIST_DATABASE)
-                    .getCollection(FRIEND_LIST_COLLECTION, Friend.class).withCodecRegistry(fromProviders(friendListCodecProvider));
+                    .getCollection(FRIEND_LIST_COLLECTION, Friend.class)
+                    .withCodecRegistry(CodecRegistries.fromCodecs(new Friend.Codec()));
 
             //_localFriendCollection = foo.withCodecRegistry(fromProviders(friendListCodecProvider));
         }

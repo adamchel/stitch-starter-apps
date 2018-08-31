@@ -21,6 +21,16 @@ import android.support.annotation.Nullable;
 
 import java.util.Date;
 
+import org.bson.BSON;
+import org.bson.BsonReader;
+import org.bson.BsonString;
+import org.bson.BsonValue;
+import org.bson.BsonWriter;
+import org.bson.Document;
+import org.bson.codecs.CollectibleCodec;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.DocumentCodec;
+import org.bson.codecs.EncoderContext;
 import org.bson.codecs.pojo.annotations.BsonCreator;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
@@ -64,23 +74,85 @@ public class Friend {
   }
 
   // Getters
-  @NonNull @BsonId
+  @NonNull
+  @BsonId
   public ObjectId getId() {
     return id;
   }
 
-  @Nullable @BsonProperty(OWNER_KEY)
-  public ObjectId getOwnerId() { return ownerId; }
 
-  @Nullable @BsonProperty(FRIEND_NAME)
-  public String getFriendName() { return friendName; }
+  @Nullable
+  @BsonProperty(OWNER_KEY)
+  public ObjectId getOwnerId() {
+    return ownerId;
+  }
 
-  @Nullable @BsonProperty(DATE_ADDED)
-  public String getDateAdded() { return dateAdded; }
+  @Nullable
+  @BsonProperty(FRIEND_NAME)
+  public String getFriendName() {
+    return friendName;
+  }
+
+  @Nullable
+  @BsonProperty(DATE_ADDED)
+  public String getDateAdded() {
+    return dateAdded;
+  }
 
   // Setters
   @BsonIgnore
   public void setOwnerId(final ObjectId ownerId) {
     this.ownerId = ownerId;
+  }
+
+
+  public static class Codec implements CollectibleCodec<Friend> {
+
+    @Override
+    public Friend generateIdIfAbsentFromDocument(final Friend document) {
+      return document;
+    }
+
+    @Override
+    public boolean documentHasId(final Friend document) {
+      return document.getId() == null;
+    }
+
+    @Override
+
+    public BsonValue getDocumentId(final Friend document) {
+      return new BsonString(document.getId().toHexString());
+    }
+
+    @Override
+    public Friend decode(final BsonReader reader, final DecoderContext decoderContext) {
+      final Document document = (new DocumentCodec()).decode(reader, decoderContext);
+      return new Friend(document.getObjectId("_id"),
+              document.getObjectId("owner_id"),
+              document.getString("name"),
+              document.getString("dateAdded"));
+    }
+
+    @Override
+    public void encode(
+            final BsonWriter writer,
+            final Friend value,
+            final EncoderContext encoderContext
+    ) {
+      final Document document = new Document();
+      if (value.getId() != null) {
+        document.put("_id", value.getId());
+      }
+        document.put("owner_id", value.getOwnerId());
+        document.put("name", value.getFriendName());
+        document.put("date_added", value.getDateAdded());
+
+      (new DocumentCodec()).encode(writer, document, encoderContext);
+    }
+
+    @Override
+    public Class<Friend> getEncoderClass() {
+      return Friend.class;
+    }
   }
 }

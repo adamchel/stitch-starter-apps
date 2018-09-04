@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvRemoteData;
     private TextView tvLocalData;
     private TextView tvFuncResult;
-    ConstraintLayout loggedInView;
+    private ConstraintLayout loggedInView;
 
     private LinearLayout ll1;
     private LinearLayout ll2;
@@ -130,17 +130,36 @@ public class MainActivity extends AppCompatActivity {
         btnCopyLocal.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Utils.displayToastIfTaskFails(
-                        MainActivity.this,
-                        _friendList.copyToLocal(),
-                        "Error copying remote data to local DB."
-                ).addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if (task.isSuccessful())
-                            tvLocalData.setText(formatFriends(_friendList.getCachedLocalItems()));
-                    }
-                });
+                if (btnCopyLocal.getText() == "Delete Local Data"){
+                    Utils.displayToastIfTaskFails(
+                            MainActivity.this,
+                            _friendList.deleteLocal(),
+                            "Error deleting local data."
+                    ).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                tvLocalData.setText(formatFriends(_friendList.getCachedLocalItems()));
+                                btnCopyLocal.setText("Copy to Local");
+                            }
+                        }
+                    });
+                } else {
+                    Utils.displayToastIfTaskFails(
+                            MainActivity.this,
+                            _friendList.copyToLocal(),
+                            "Error copying remote data to local DB."
+                    ).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                tvLocalData.setText(formatFriends(_friendList.getCachedLocalItems()));
+                                btnCopyLocal.setText("Delete Local Data");
+                            }
+
+                        }
+                    });
+                }
             }
         });
 

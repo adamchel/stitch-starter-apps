@@ -80,7 +80,6 @@ public class Friend {
     return id;
   }
 
-
   @Nullable
   @BsonProperty(OWNER_KEY)
   public ObjectId getOwnerId() {
@@ -101,10 +100,9 @@ public class Friend {
 
   // Setters
   @BsonIgnore
-  public void setOwnerId(final ObjectId ownerId) {
-    this.ownerId = ownerId;
+  public void setDocumentId(final ObjectId docId) {
+    this.id = docId;
   }
-
 
   public static class Codec implements CollectibleCodec<Friend> {
 
@@ -130,7 +128,7 @@ public class Friend {
       return new Friend(document.getObjectId("_id"),
               document.getObjectId("owner_id"),
               document.getString("name"),
-              document.getString("dateAdded"));
+              document.getString("date_added"));
     }
 
     @Override

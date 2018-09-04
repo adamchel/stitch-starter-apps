@@ -18,10 +18,9 @@ public class Utils {
             final Task task,
             final String errorMessage
     ) {
-
-        return task.continueWithTask(new Continuation<T, Task>() {
+        return task.continueWithTask(new Continuation<T, Task<T>>() {
             @Override
-            public Task then(@NonNull Task<T> task) throws Exception {
+            public Task<T> then(@NonNull Task<T> task) throws Exception {
                 if (!task.isSuccessful()) {
                     if (task.getException() != null) {
                         Log.d(Utils.class.getName(), errorMessage + ": " + task.getException().getMessage());

@@ -8,6 +8,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.stitch.android.core.Stitch;
 import com.mongodb.stitch.android.core.StitchAppClient;
 import com.mongodb.stitch.android.core.auth.StitchUser;
@@ -21,10 +22,12 @@ import com.mongodb.stitch.starter_app.R;
 
 import com.mongodb.stitch.starter_app.model.objects.Friend;
 
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.pojo.PojoCodecProvider;
+import org.bson.types.ObjectId;
 
 
 import java.util.ArrayList;
@@ -155,20 +158,36 @@ public class FriendList {
      */
     public Task copyToLocal() {
         if (_cachedRemoteDataList.size() <= 0) {
-            throw new IllegalStateException("You need to get the remote data before making a local copy.");
+
+            IllegalStateException ise =  new IllegalStateException("You need to get the remote data before making a local copy.");
+            return Tasks.forException(ise);
         }
 
         try {
-            //insert everything
+            deleteLocal();
+
             _localFriendCollection.insertMany(_cachedRemoteDataList);
 
-            //fetch everything. Not neccessary here, but shows how to
             ArrayList<Friend> results = new ArrayList();
-            FriendList.this._cachedLocalDataList.clear();
-            FriendList.this._cachedLocalDataList.addAll(_localFriendCollection.find(new Document()).into(results));
+            _localFriendCollection.find(Friend.class).into(results);
 
+            this._cachedLocalDataList.addAll(results);
             return Tasks.forResult(results);
         } catch (Exception ex){
+            return Tasks.forException(ex);
+        }
+    }
+
+    /**
+     * Copies the RemoteData to the local DB. Because calls to the local DB are synchronous,
+     * we need to catch exceptions and return them as a Task.
+     */
+    public Task deleteLocal() {
+        try {
+            DeleteResult deleteResult = _localFriendCollection.deleteMany(new BsonDocument());
+            FriendList.this._cachedLocalDataList.clear();
+            return Tasks.forResult(deleteResult.getDeletedCount());
+        } catch (Exception ex) {
             return Tasks.forException(ex);
         }
     }
@@ -203,8 +222,7 @@ public class FriendList {
     // You could now add login methods for other authentication providers, abstracting away the Stit
 
     /**
-     * "Logs out" this task list by clearing the cached list of tasks, triggering a logout in Stitch,
-     * and notifying the listeners of the
+     * Clears the cached list of friends and triggers a logout in Stitch.
      */
     public void logout() {
         this._cachedRemoteDataList.clear();

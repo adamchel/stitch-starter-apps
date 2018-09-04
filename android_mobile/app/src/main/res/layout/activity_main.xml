@@ -152,7 +152,7 @@
                     android:layout_height="wrap_content"
                     android:layout_column="0"
                     android:gravity="left"
-                    android:text="Atlas data(remote)"
+                    android:text="Atlas data (remote)"
                     android:textSize="12dp"
                     android:textStyle="italic" />
 
@@ -165,10 +165,7 @@
                     android:textStyle="italic" />
             </TableRow>
 
-
-
             <TableRow android:layout_height="match_parent">
-
                 <TextView
                     android:id="@+id/remoteData"
                     android:layout_width="wrap_content"
@@ -208,7 +205,5 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"/>
     </android.support.constraint.ConstraintLayout>
-
-
 
 </android.support.constraint.ConstraintLayout>

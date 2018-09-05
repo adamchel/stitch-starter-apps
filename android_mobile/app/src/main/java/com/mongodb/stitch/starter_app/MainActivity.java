@@ -16,6 +16,7 @@ import com.mongodb.stitch.android.core.auth.StitchUser;
 import com.mongodb.stitch.starter_app.model.FriendList;
 import com.mongodb.stitch.starter_app.model.objects.Friend;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -72,9 +73,9 @@ public class MainActivity extends AppCompatActivity {
                         MainActivity.this,
                         _friendList.loginAnonymously(),
                         "Failed to login."
-                ).addOnCompleteListener(new OnCompleteListener() {
+                ).addOnCompleteListener(new OnCompleteListener<StitchUser>() {
                     @Override
-                    public void onComplete(@NonNull Task task) {
+                    public void onComplete(@NonNull Task<StitchUser> task) {
                         if (task.isSuccessful()) SetIsLoggedInScreen();
                     }
                 });
@@ -88,13 +89,21 @@ public class MainActivity extends AppCompatActivity {
                 EditText etEmail = findViewById(R.id.tvEmail);
                 EditText etPassword = findViewById(R.id.tvPassword);
 
+                // ADAM: By exposing the Stitch user here, this again breaks the separation of
+                //       Stitch and UI. For the sample app, this is probably fine, but if a
+                //       developer were developing a serious app, it would be a better idea for the
+                //       model to also have a user object that represents a user outside the
+                //       context of Stitch. The idea behind separating Stitch and the UI is that if
+                //       anything ever changed with how Stitch works, or a developer wanted to
+                //       augment Stitch with some other service, they wouldn't have to change
+                //       anything in the UI code, they would just need to change their model.
                 Utils.displayToastIfTaskFails(
                         MainActivity.this,
                         _friendList.loginEmail(etEmail.getText().toString(), etPassword.getText().toString()),
                         "Failed to login."
-                ).addOnCompleteListener(new OnCompleteListener() {
+                ).addOnCompleteListener(new OnCompleteListener<StitchUser>() {
                     @Override
-                    public void onComplete(@NonNull Task task) {
+                    public void onComplete(@NonNull Task<StitchUser> task) {
                         if (task.isSuccessful()) SetIsLoggedInScreen();
                     }
                 });
@@ -135,9 +144,9 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this,
                             _friendList.deleteLocal(),
                             "Error deleting local data."
-                    ).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    ).addOnCompleteListener(new OnCompleteListener<Long>() {
                         @Override
-                        public void onComplete(@NonNull Task<Void> task) {
+                        public void onComplete(@NonNull Task<Long> task) {
                             if (task.isSuccessful()) {
                                 tvLocalData.setText(formatFriends(_friendList.getCachedLocalItems()));
                                 btnCopyLocal.setText("Copy to Local");
@@ -149,9 +158,9 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this,
                             _friendList.copyToLocal(),
                             "Error copying remote data to local DB."
-                    ).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    ).addOnCompleteListener(new OnCompleteListener<ArrayList<Friend>>() {
                         @Override
-                        public void onComplete(@NonNull Task<Void> task) {
+                        public void onComplete(@NonNull Task<ArrayList<Friend>> task) {
                             if (task.isSuccessful()) {
                                 tvLocalData.setText(formatFriends(_friendList.getCachedLocalItems()));
                                 btnCopyLocal.setText("Delete Local Data");
@@ -168,13 +177,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Utils.displayToastIfTaskFails(
                         MainActivity.this,
-                        _friendList.callFunction("SayHello"),
-                        "Failed to call the function \"SayHello\"."
-                ).addOnCompleteListener(new OnCompleteListener() {
+                        _friendList.sayHello(),
+                        "Failed to say hello to friends."
+                ).addOnCompleteListener(new OnCompleteListener<String>() {
                             @Override
-                            public void onComplete(@NonNull Task task) {
+                            public void onComplete(@NonNull Task<String> task) {
                                 if (task.isSuccessful()) {
-                                    tvFuncResult.setText(task.getResult().toString());
+                                    tvFuncResult.setText(task.getResult());
                                 }
                             }
                         });
@@ -200,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
         loggedInView.setVisibility(View.VISIBLE);
         btnLogout.setVisibility(View.VISIBLE);
 
+        // ADAM: My earlier comment about the separation of Stitch and UI holds here as well.
         StitchUser currentUser = _friendList.getStitchClientInfo();
         String logonText = "You are logged in with the " + currentUser.getLoggedInProviderName() + " provider.";
         if (currentUser.getLoggedInProviderName().contains("userpass")) {

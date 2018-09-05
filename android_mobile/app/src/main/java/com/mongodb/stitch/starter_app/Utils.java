@@ -13,14 +13,18 @@ import com.google.android.gms.tasks.Tasks;
 import com.mongodb.stitch.starter_app.model.FriendList;
 
 public class Utils {
-    public static <T> Task displayToastIfTaskFails(
+    // ADAM: I was able to get rid of the warnings you were seeing by making the Task objects have
+    //       a generic type parameter rather than being a raw type. This meant I also had to update
+    //       the type of the OnCompleteListener objects in the MainActivity to reflect the type of
+    //       the task that this should be returning.
+    public static <T> Task<T> displayToastIfTaskFails(
             final Context context,
-            final Task task,
+            final Task<T> task,
             final String errorMessage
     ) {
         return task.continueWithTask(new Continuation<T, Task<T>>() {
             @Override
-            public Task<T> then(@NonNull Task<T> task) throws Exception {
+            public Task<T> then(@NonNull Task<T> task) {
                 if (!task.isSuccessful()) {
                     if (task.getException() != null) {
                         Log.d(Utils.class.getName(), errorMessage + ": " + task.getException().getMessage());

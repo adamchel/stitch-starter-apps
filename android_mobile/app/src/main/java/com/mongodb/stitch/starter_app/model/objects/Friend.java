@@ -42,8 +42,12 @@ import org.bson.types.ObjectId;
  * so Friend objects can be directly inserted and retrieved from a MongoDB collection instance.
  * See http://mongodb.github.io/mongo-java-driver/3.6/driver/getting-started/quick-start-pojo/
  */
+
 public class Friend {
-  public static final String ID_KEY = "_id";
+  // ADAM: This key is no longer neceessary since the @BsonId annotation is used to specify the _id
+  //       field of an object.
+//  public static final String ID_KEY = "_id";
+
   public static final String OWNER_KEY = "owner_id";
   public static final String FRIEND_NAME = "name";
   public static final String DATE_ADDED = "date_added";
@@ -56,6 +60,10 @@ public class Friend {
   private String friendName;
   private String dateAdded;
 
+  // ADAM: It might be worth adding a comment here that the @BsonCreator annotation tells the codec
+  //       generator that this is the constructor that the remote MongoDB and local MongoDB
+  //       services use to construct a Friend object from BSON that it gets from a database
+  //       instance
   @BsonCreator
   public Friend(
           @NonNull @BsonId final ObjectId id,
@@ -69,10 +77,15 @@ public class Friend {
     this.friendName = friendName;
   }
 
-  public Friend(@NonNull final String task) {
-    this.id = ObjectId.get();
-  }
+  // ADAM: Now that this isn't a task list, you don't need this constructor. People who want to
+  //       extend this object can define their own constructors
+//  public Friend(@NonNull final String task) {
+//    this.id = ObjectId.get();
+//  }
 
+  // ADAM: Might also be worth adding a comment here to specify that these are the getters that
+  //       the codec generator will use to generate a BSON document out of a Friend object when
+  //       writing to a database instance.
   // Getters
   @NonNull
   @BsonId
@@ -98,59 +111,65 @@ public class Friend {
     return dateAdded;
   }
 
+  // ADAM: This isn't necessary, and including it actually confuses the POJO codec
   // Setters
-  @BsonIgnore
-  public void setDocumentId(final ObjectId docId) {
-    this.id = docId;
-  }
+//  @BsonIgnore
+//  public void setDocumentId(final ObjectId docId) {
+//    this.id = docId;
+//  }
 
-  public static class Codec implements CollectibleCodec<Friend> {
-
-    @Override
-    public Friend generateIdIfAbsentFromDocument(final Friend document) {
-      return document;
-    }
-
-    @Override
-    public boolean documentHasId(final Friend document) {
-      return document.getId() == null;
-    }
-
-    @Override
-
-    public BsonValue getDocumentId(final Friend document) {
-      return new BsonString(document.getId().toHexString());
-    }
-
-    @Override
-    public Friend decode(final BsonReader reader, final DecoderContext decoderContext) {
-      final Document document = (new DocumentCodec()).decode(reader, decoderContext);
-      return new Friend(document.getObjectId("_id"),
-              document.getObjectId("owner_id"),
-              document.getString("name"),
-              document.getString("date_added"));
-    }
-
-    @Override
-    public void encode(
-            final BsonWriter writer,
-            final Friend value,
-            final EncoderContext encoderContext
-    ) {
-      final Document document = new Document();
-      if (value.getId() != null) {
-        document.put("_id", value.getId());
-      }
-        document.put("owner_id", value.getOwnerId());
-        document.put("name", value.getFriendName());
-        document.put("date_added", value.getDateAdded());
-
-      (new DocumentCodec()).encode(writer, document, encoderContext);
-    }
-
-    @Override
-    public Class<Friend> getEncoderClass() {
-      return Friend.class;
-    }
-  }
+  // ADAM: This codec is not necessary. The POJO codec which is derived from the annotations
+  //       makes manually specifying a codec unnecessary. The reason you had to use this is
+  //       because you weren't merging the pojo codec with the default codec registry properly.
+  //       (I don't blame you because the Java driver people did not document the codec system
+  //       very well. See http://rosslawley.co.uk/mongodb-pojo-support/ for more info)
+//  public static class Codec implements CollectibleCodec<Friend> {
+//
+//    @Override
+//    public Friend generateIdIfAbsentFromDocument(final Friend document) {
+//      return document;
+//    }
+//
+//    @Override
+//    public boolean documentHasId(final Friend document) {
+//      return document.getId() == null;
+//    }
+//
+//    @Override
+//
+//    public BsonValue getDocumentId(final Friend document) {
+//      return new BsonString(document.getId().toHexString());
+//    }
+//
+//    @Override
+//    public Friend decode(final BsonReader reader, final DecoderContext decoderContext) {
+//      final Document document = (new DocumentCodec()).decode(reader, decoderContext);
+//      return new Friend(document.getObjectId("_id"),
+//              document.getObjectId("owner_id"),
+//              document.getString("name"),
+//              document.getString("date_added"));
+//    }
+//
+//    @Override
+//    public void encode(
+//            final BsonWriter writer,
+//            final Friend value,
+//            final EncoderContext encoderContext
+//    ) {
+//      final Document document = new Document();
+//      if (value.getId() != null) {
+//        document.put("_id", value.getId());
+//      }
+//        document.put("owner_id", value.getOwnerId());
+//        document.put("name", value.getFriendName());
+//        document.put("date_added", value.getDateAdded());
+//
+//      (new DocumentCodec()).encode(writer, document, encoderContext);
+//    }
+//
+//    @Override
+//    public Class<Friend> getEncoderClass() {
+//      return Friend.class;
+//    }
+//  }
 }

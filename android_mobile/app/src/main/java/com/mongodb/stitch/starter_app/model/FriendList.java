@@ -18,6 +18,7 @@ import com.mongodb.stitch.core.StitchAppClientConfiguration;
 import com.mongodb.stitch.core.auth.providers.anonymous.AnonymousCredential;
 import com.mongodb.stitch.core.auth.providers.userpassword.UserPasswordCredential;
 import com.mongodb.stitch.android.services.mongodb.local.LocalMongoDbService;
+import com.mongodb.stitch.core.internal.common.BsonUtils;
 import com.mongodb.stitch.starter_app.R;
 
 import com.mongodb.stitch.starter_app.model.objects.Friend;
@@ -33,7 +34,9 @@ import org.bson.types.ObjectId;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 /**
  * This is the model for the application. It contains no Android UI-specific logic, but it contains
@@ -49,7 +52,7 @@ public class FriendList {
     private String _stitchClientAppId;
     private StitchAppClient _stitchClient;
     private RemoteMongoCollection<Friend> _remoteFriendCollection;
-    private MongoCollection _localFriendCollection;
+    private MongoCollection<Friend> _localFriendCollection;
     private MongoClient _mobileClient;
 
     // General fields
@@ -98,7 +101,17 @@ public class FriendList {
             _localFriendCollection = _mobileClient
                     .getDatabase(FRIEND_LIST_DATABASE)
                     .getCollection(FRIEND_LIST_COLLECTION, Friend.class)
-                    .withCodecRegistry(CodecRegistries.fromCodecs(new Friend.Codec()));
+                    // ADAM: when using local MongoDB by itself, you have to manually specify
+                    //       that you want to merge the friend list codec with the default codec
+                    //       registry. We do this automatically for the Stitch app client, but
+                    //       because local MongoDB uses the Java driver, we can't change this.
+                    //       You got around this before by manually specifying a codec, but we
+                    //       can just take advantage of the POJO codec and use fromRegistries() to
+                    //       merge the default codec registry with the friend list codec.
+                    .withCodecRegistry(fromRegistries(
+                            BsonUtils.DEFAULT_CODEC_REGISTRY,
+                            fromProviders(friendListCodecProvider))
+                    );
 
             //_localFriendCollection = foo.withCodecRegistry(fromProviders(friendListCodecProvider));
         }
@@ -156,7 +169,7 @@ public class FriendList {
      * Copies the RemoteData to the local DB. Because calls to the local DB are synchronous,
      * we need to catch exceptions and return them as a Task.
      */
-    public Task copyToLocal() {
+    public Task<ArrayList<Friend>> copyToLocal() {
         if (_cachedRemoteDataList.size() <= 0) {
 
             IllegalStateException ise =  new IllegalStateException("You need to get the remote data before making a local copy.");
@@ -168,7 +181,7 @@ public class FriendList {
 
             _localFriendCollection.insertMany(_cachedRemoteDataList);
 
-            ArrayList<Friend> results = new ArrayList();
+            ArrayList<Friend> results = new ArrayList<>();
             _localFriendCollection.find(Friend.class).into(results);
 
             this._cachedLocalDataList.addAll(results);
@@ -182,7 +195,7 @@ public class FriendList {
      * Copies the RemoteData to the local DB. Because calls to the local DB are synchronous,
      * we need to catch exceptions and return them as a Task.
      */
-    public Task deleteLocal() {
+    public Task<Long> deleteLocal() {
         try {
             DeleteResult deleteResult = _localFriendCollection.deleteMany(new BsonDocument());
             FriendList.this._cachedLocalDataList.clear();
@@ -197,7 +210,7 @@ public class FriendList {
      *
      * @return
      */
-    public Task loginAnonymously() {
+    public Task<StitchUser> loginAnonymously() {
 
         if (_stitchClient.getAuth().isLoggedIn()) {
             return Tasks.forException(new IllegalStateException("You must be logged out first."));
@@ -211,7 +224,7 @@ public class FriendList {
      *
      * @return
      */
-    public Task loginEmail(String email, String password) {
+    public Task<StitchUser> loginEmail(String email, String password) {
         if (_stitchClient.getAuth().isLoggedIn()) {
             return Tasks.forException(new IllegalStateException("Must be logged out first."));
         }
@@ -249,7 +262,19 @@ public class FriendList {
         return _cachedLocalDataList;
     }
 
-    public Task callFunction(String funcName) {
-        return this._stitchClient.callFunction(funcName, null, String.class);
+    // ADAM: I think this method defeats the purpose of separating Stitch logic from the
+    //       MainActivity If the developer wants to expose the functionality of a Stitch function,
+    //       the model should expose that as its own specific method. Again, the MainActivity
+    //       probably shouldn't have any awareness of what Stitch is or what Stitch functions are.
+    //       If the MainActivity is calling a Stitch function via its name in Stitch, the main
+    //       activity is now entangled with the logic of Stitch.
+//    public Task callFunction(String funcName) {
+//        return this._stitchClient.callFunction(funcName, null, String.class);
+//    }
+
+    // ADAM: Something like this should exist instead
+    public Task<String> sayHello() {
+        return this._stitchClient.callFunction("SayHello", null, String.class);
     }
+
 }
